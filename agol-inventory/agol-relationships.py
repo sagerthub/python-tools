@@ -1,12 +1,24 @@
 # Version 1.0 2022-02-16
-# Works with MRMPO's ArcGIS Online (AGOL)
-# Cannot process Hub sites (skips them)
+# Requires ArcGIS Pro. Developed and tested in ArcGIS Pro 2.9 with default python env.
+# Requires item report created in ArcGIS Online (AGOL). CSV format, field names unchanged.
+# Requires user to be logged into AGOL Administrator (Admin) account through ArcGIS Pro or have username and password for Administrator account.
+# Works with MRMPO's ArcGIS Online (AGOL).
+# Cannot process Hub sites (skips them).
 
-organization_items_csv_name = 'OrganizationItems_2022-02-09.csv'
-#file_path_to_organization_items_csv
+# organization_items_csv_name = 'OrganizationItems_2022-02-09.csv'
+# Enter file path to CSV exported from AGOL between single quotes (keep r).
+file_path_to_organization_items_csv = r''
+# Enter path to folder where output table will be saved. Leave blank and output will be saved to the same folder as the script or APRX file.
+folder_for_output_file = r''
+
+# If you are not logged into an Admin account, enter username and password for Admin account here. Delete after running and do not save.
+# Note that usig ArcGIS Pro with an Admin account is the most reliable and secure method.
+p = ''
+u = ''
+credentials = [i for i in [p, u] if i != '']
 
 from arcgis.gis import GIS
-# from os import path
+from os import path
 import json
 # import openpyxl
 from openpyxl import Workbook
@@ -15,8 +27,11 @@ from datetime import datetime
 
 start_time = datetime.now()
 
+# Define getTry function. Tries to get AGOL item content based on item ID. Some items have IDs but no content and will cause errors with other functions. Soe items may be owned outside the organization and cannot be accessed, throwing an error. These cases will return None.
 def getTry(agol_item_id):
+    '''Takes one 32-character ArcGIS Online Item Id as a string and tries to get associated content. If item has content, item content object is returned. Otherwise None is returned.'''
     try:
+        # Check if Item Id is in organization report. If not, it is assumed to not belong to the org and access will be denied, throwing an exception.
         if agol_item_id in orgItemsSummary:
             item_content = gis.content.get(agol_item_id)
             return item_content
@@ -84,48 +99,70 @@ def getAllDependencies(agol_item_id):
                 ] + ['CONTAINS'] + i)
     return list_of_dependencies
 
+if credentials:
+    # LOGIN WITH CREDENTIALS
+else:
+    # Create GIS and use Pro credentials to login
+    gis = GIS('pro')
+
+print('GIS connected.')
 
 # Read list of item Ids from organization report
 orgItemsIdList = pd.read_csv(organization_items_csv_name, usecols=['Item ID'], squeeze=True).to_list()
+# Read list of item titles from organization report
 orgItemsTitleList = pd.read_csv(organization_items_csv_name, usecols=['Title'], squeeze=True).to_list()
+# Read list of item types from organzation report
 orgItemsTypeList = pd.read_csv(organization_items_csv_name, usecols=['Item Type'], squeeze=True).to_list()
+# Empty dictionary for combining Item Ids with Titles and Types
 orgItemsSummary = {}
+# Creating orgItemsSummary dictionary: {ItemId: [ItemTitle, ItemType]}
 for i in range(len(orgItemsIdList)):
     if 'Hub' not in orgItemsTypeList[i]:
         orgItemsSummary[orgItemsIdList[i]] = [orgItemsTitleList[i], orgItemsTypeList[i]]
 
+# Number of inputs as length of lists/dictionary for progress reporting
 num_of_inputs = len(orgItemsSummary)
+# Script will report progress in 5% increments (based on input items)
 five_percent_increment = num_of_inputs/20
 
-# Create GIS and use Pro credentials to login
-gis = GIS('pro')
-
-print('GIS connected. {} items to check. Progress updates every 5% (of items checked). Starting at {}'.format(num_of_inputs, datetime.now().isoformat()))
+print('{} items to check. Progress updates every 5% (of items checked). Starting at {}'.format(num_of_inputs, datetime.now().isoformat()))
 
 # Start with list containing header row for output table
 itemMatrix = [['Parent Item ID', 'Parent Item Title', 'Parent Item Type', 'Relationship', 'Child Item ID', 'Child Item Title', 'Child Item Type']]
 
+# Counters for progress reporting. First counter starts at 0 and adds one for every input Item Id processed.
 counter = 0
+# Five percent counter starts at 1 and adds one after every 5% of input items have been processed.
 five_percent_counter = 1
+# Length of output list. Number of new outputs is reported every 5%
 previous_out_count = len(itemMatrix)
+# Time between 5% icrements will be reproted
 previous_time = datetime.now()
 
 # Use previously defined function to iterate through all items in org list and create connections (dependencies) as lists
 for orgItem in orgItemsSummary.keys():
     # Newly created lists are added to itemMatrix list for output to Excel table
     itemMatrix.extend(getAllDependencies(orgItem))
+    # Counter adds 1
     counter += 1
+    # Progress is checked (0.5 = 50%, 1 = 100%)
     progress = counter/num_of_inputs
+    # Five percent counter (starting at 1) times 0.05 sets the next 5% target. Once this condition is met, next target is set. Each 5% increment is reported only once.
     if progress > five_percent_counter*0.05:
+        # Format % text
         progress_percent = '{0:.0%}'.format(progress)
+        # Check time elapsed
         progress_time = datetime.now() - previous_time
+        # Check outputs found
         progress_count = len(itemMatrix) - previous_out_count
+        # Print 5% report
         print('{} of inputs checked. {} elapsed and {} connections found since last progress update'.format(progress_percent, progress_time, progress_count))
+        # Set time and count variables for next report
         previous_time = datetime.now()
         previous_out_count = len(itemMatrix)
         five_percent_counter += 1
 
-# Create openpyxl workbook and worksheet
+# Create openpyxl workbook (wb) and worksheet (ws)
 wb = Workbook()
 ws = wb.active
 
