@@ -5,9 +5,9 @@
 # Works with MRMPO's ArcGIS Online (AGOL).
 # Cannot process Hub sites (skips them).
 
-# organization_items_csv_name = 'OrganizationItems_2022-02-09.csv'
-# Enter file path to CSV exported from AGOL between single quotes (keep r).
-file_path_to_organization_items_csv = r''
+# organization_items_csv = 'OrganizationItems_2022-02-09.csv'
+# Enter file path to CSV exported from AGOL between single quotes (keep r). If CSV and script/project are in the same folder, only file name is required.
+file_path_to_organization_items_csv = r'.csv'
 # Enter path to folder where output table will be saved. Leave blank and output will be saved to the same folder as the script or APRX file.
 folder_for_output_file = r''
 
@@ -26,6 +26,9 @@ import pandas as pd
 from datetime import datetime
 
 start_time = datetime.now()
+
+# Use os.path.normpath to normalize path strings
+file_path_to_organization_items_csv = path.normpath(file_path_to_organization_items_csv)
 
 # Define getTry function. Tries to get AGOL item content based on item ID. Some items have IDs but no content and will cause errors with other functions. Soe items may be owned outside the organization and cannot be accessed, throwing an error. These cases will return None.
 def getTry(agol_item_id):
@@ -176,9 +179,17 @@ file_time = datetime.now().isoformat()[:19]
 file_time_stamp = file_time.replace('T', '_').replace('-', '').replace(':', '')
 # Create file name
 out_file = 'AGOL_Item_Dependency_Matrix_{}.xlsx'.format(file_time_stamp)
+# If output path user variable was entered, use it.
+##### CHECK WHETHER THIS WORKS AFTER NORMPATH
+if folder_for_output_file != '':
+    folder_for_output_file = path.normpath(folder_for_output_file)
+    output_path = path.join(folder_for_output_file, out_file)
+else:
+    output_path = out_file
 
 # Write output file
-wb.save(out_file)
+wb.save(output_path)
 
 print('All done!')
-print(datetime.now() - start_time)
+# Prit total elapsed time
+print('Total time elapsed: {}'.format(datetime.now() - start_time))
