@@ -9,10 +9,10 @@ start_time = datetime.now()
 
 # USER INPUTS HERE ############################################################
 # End year of 5 yr dataset (e.g., 2017 = 2013-2017)
-yr = '2019'
+yr = '2020'
 # Working directory
 # MUST CONTAIN: download table, Table Shells
-table_dir = path.normpath('D:/Staging/acs2019')
+table_dir = path.normpath('D:/Staging/acs2020')
 # Excel workbook with list of table codes for download
 table_xls = 'ACS_Tables_for_Download_python.xlsx'
 # Sheet number (first sheet = 0)
@@ -102,7 +102,7 @@ table_column = pd.read_excel(
 tableList = table_column.to_list()
 
 # Create dictionary of Universes from Table Shells
-table_shells_xlsx = path.join(table_dir, 'ACS2019_Table_Shells.xlsx')
+table_shells_xlsx = path.join(table_dir, 'ACS2020_Table_Shells.xlsx')
 shells = pd.read_excel(table_shells_xlsx)
 shells_universe = shells[shells['Stub'].str.contains('Universe') == True]
 universes = dict(zip(shells_universe['Table ID'], shells_universe['Stub']))
@@ -342,7 +342,7 @@ for code in tableList:
                 ord(c): '' for c in '''!"'(),-./:;[]{}'''
                 })
         filename_dict = OrderedDict({
-                'In 2019 InflationAdjusted Dollars': '',
+                'In 2020 InflationAdjusted Dollars': '',
                 ' ': '_',
                 'The_United_States': 'US',
                 'In_The_Past_12_Months': 'In_Past_Year',
@@ -397,7 +397,7 @@ for code in tableList:
         # Put the dictionary into a DF so it can become a sheet in the workbook
         data_dict_frame = pd.DataFrame(data_dict)
 
-        table_name = '{}_2019_ACS_5yr_Tract_{}'.format(concept, code)
+        table_name = '{}_2020_ACS_5yr_Tract_{}'.format(concept, code)
         # In case XLSX format table is needed (they can support more columns,
         # but XLS are more compatible with ArcGIS)
         if result.shape[1] > 255:
@@ -454,7 +454,7 @@ for code in tableList:
                 ord(c): '' for c in '''!"'(),-./:;[]{}'''
                 })
         filename_dict = OrderedDict({
-                'In 2019 InflationAdjusted Dollars': '',
+                'In 2020 InflationAdjusted Dollars': '',
                 ' ': '_',
                 'The_United_States': 'US',
                 'In_The_Past_12_Months': 'In_Past_Year',
@@ -509,7 +509,7 @@ for code in tableList:
         # Put the dictionary into a DF so it can become a sheet in the workbook
         data_dict_frame = pd.DataFrame(data_dict)
 
-        table_name = '{}_2019_ACS_5yr_BlockGroup_{}'.format(concept, code)
+        table_name = '{}_2020_ACS_5yr_BlockGroup_{}'.format(concept, code)
         # In case XLSX format table is needed (they can support more columns,
         # but XLS are more compatible with ArcGIS)
         if result.shape[1] > 255:
